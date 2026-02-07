@@ -215,6 +215,7 @@
       <h1>Conqueror Medal Tracker</h1>
       <div class="hint hint-desktop">Click = in progress · Double-click = completed · Right-click = reset</div>
 <div class="hint hint-mobile">Tap to cycle: Not started → In progress → Done → Not started</div>
+      <div class="hint" id="overallTotals"></div>
     </div>
     <div class="actions">
       <button id="exportBtn">Export</button>
@@ -453,6 +454,23 @@ const SERIES_TINTS = {
 const seriesArr = seriesList();
 renderMobileDropdown(seriesArr);
 
+      // Overall totals (all medals)
+let totalNotStarted = 0;
+let totalProgress = 0;
+let totalDone = 0;
+
+for (const m of MEDALS) {
+  const s = progress[m.id] ?? 0;
+  if (s === 2) totalDone++;
+  else if (s === 1) totalProgress++;
+  else totalNotStarted++;
+}
+
+const overall = document.getElementById("overallTotals");
+if (overall) {
+  overall.textContent =
+    `Overall: ${totalDone}/${MEDALS.length} done · ${totalProgress} in progress · ${totalNotStarted} not started`;
+}
 
     // Filters
 const allBtn = document.createElement("button");

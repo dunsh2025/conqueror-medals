@@ -133,13 +133,20 @@
     .state.not-started {
       background:#10131a;
     }
+    
+.hint-mobile { display: none; }
+.hint-desktop { display: block; }
+
 /* Mobile polish */
 @media (max-width: 600px) {
   body { margin: 14px; }
   header { gap: 10px; }
   h1 { font-size: 16px; }
   .hint { font-size: 12px; }
-
+  
+  .hint-mobile { display: block; }
+  .hint-desktop { display: none; }
+  
   /* Bigger tap targets */
   button { padding: 10px 12px; border-radius: 12px; }
 
@@ -206,7 +213,8 @@
   <header>
     <div>
       <h1>Conqueror Medal Tracker</h1>
-      <div class="hint">Click = in progress · Double-click = completed · Right-click = reset</div>
+      <div class="hint hint-desktop">Click = in progress · Double-click = completed · Right-click = reset</div>
+<div class="hint hint-mobile">Tap to cycle: Not started → In progress → Done → Not started</div>
     </div>
     <div class="actions">
       <button id="exportBtn">Export</button>

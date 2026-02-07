@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Conqueror Medal Tracker</title>
+  <style>
+    :root { --gap:14px; --radius:14px; }
+    body {
+      margin:24px;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:#0b0c10;
+      color:#f2f2f2;
+    }
+    header {
+      display:flex;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      gap:12px;
+      margin-bottom:12px;
+      align-items:baseline;
+    }
+    h1 { font-size:18px; margin:0; }
+    .hint { font-size:13px; opacity:.8; margin-top:4px; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; }
+    button {
+      background:#141821;
+      color:#fff;
+      border:1px solid #2b2f36;
+      border-radius:10px;
+      padding:8px 10px;
+      cursor:pointer;
+    }
+    button:hover { background:#1a2030; }
+
+  .topbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0 18px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+
+    section { margin-bottom:28px; }
+    .section-title {
+      display:flex;
+      justify-content:space-between;
+      align-items:baseline;
+      gap:12px;
+      margin-bottom:10px;
+    }
+    h2 { font-size:15px; margin:0; }
+    .count { font-size:12px; opacity:.75; }
+
+    .grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+      gap:var(--gap);
+    }
+
+    .card {
+      background:#11131a;
+      border:1px solid #222633;
+      border-radius:var(--radius);
+      padding:10px;
+      user-select:none;
+    }
+
+.imgwrap {
+  border-radius:12px;
+  overflow:hidden;
+  border:2px solid transparent;
+
+  /* NEW: tinted gradient background */
+  background:
+    radial-gradient(circle at 30% 25%, rgba(var(--tint), 0.45), rgba(var(--tint), 0.14), rgba(0,0,0,0.40));
+}
+
+    .imgwrap.progress { border:3px solid red; }
+
+    img {
+      width:100%;
+      height:160px;
+      object-fit:contain;
+      display:block;
+    }
+
+    /* Not started: greyed out */
+    .not-started img {
+      filter: grayscale(1) brightness(.75);
+      opacity:.85;
+    }
+
+    /* In progress: colour but faded */
+    .progress img {
+      filter: saturate(.65) brightness(.85) contrast(.95);
+      opacity: .45;
+    }
+
+    /* Done: full colour */
+    .done img {
+      filter:none;
+      opacity:1;
+    }
+
+    .label {
+      display:flex;
+      justify-content:space-between;
+      font-size:13px;
+      margin-top:8px;
+      gap:8px;
+      align-items:center;
+    }
+
+    .state {
+      font-size:12px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid #2b2f36;
+      white-space:nowrap;
+      opacity:.95;
+    }
+    .state.progress {
+      background:rgba(255,0,0,.15);
+      border-color:red;
+    }
+    .state.done {
+      background:rgba(0,180,90,.15);
+      border-color:rgba(0,180,90,.6);
+    }
+    .state.not-started {
+      background:#10131a;
+    }
+/* Mobile polish */
+@media (max-width: 600px) {
+  body { margin: 14px; }
+  header { gap: 10px; }
+  h1 { font-size: 16px; }
+  .hint { font-size: 12px; }
+
+  /* Bigger tap targets */
+  button { padding: 10px 12px; border-radius: 12px; }
+
+/* Sticky filter bar */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(11,12,16,0.92);
+  backdrop-filter: blur(8px);
+  padding: 10px 0;
+  margin: 0 0 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Mobile: use dropdown instead of scroll buttons */
+#filters { display: none; }
+
+.mobile-filter {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 10px;
+}
+
+.mobile-filter select {
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid #2b2f36;
+  background: #141821;
+  color: #f2f2f2;
+  font-size: 14px;
+}
+
+
+  /* Horizontal scroll for lots of series buttons */
+  #filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 8px;
+  }
+  #filters button { flex: 0 0 auto; }
+
+  /* Fewer columns, larger cards */
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  img { height: 140px; }
+
+  .label { font-size: 12px; }
+  .state { font-size: 11px; padding: 4px 7px; }
+}
+
+@media (max-width: 360px) {
+  .grid { grid-template-columns: 1fr; }
+  img { height: 165px; }
+}
+
+  </style>
+</head>
+
+<body>
+  <header>
+    <div>
+      <h1>Conqueror Medal Tracker</h1>
+      <div class="hint">Click = in progress · Double-click = completed · Right-click = reset</div>
+    </div>
+    <div class="actions">
+      <button id="exportBtn">Export</button>
+      <button id="importBtn">Import</button>
+      <button id="resetBtn">Reset all</button>
+    </div>
+  </header>
+
+  <div class="topbar" id="filters"></div>
+<div class="mobile-filter" id="mobileFilter"></div>
+
+  <main id="content"></main>
+
+  <script>
+    const STORAGE_KEY = "conqueror_medals_tracker_v5";
+    const STATES = ["not-started","progress","done"];
+
+    // Your preferred series order
+    const SERIES_ORDER = [
+      "Classic",
+      "Annual",
+      "The Lord of the Rings",
+      "Harry Potter",
+      "The Hobbit",
+      "Star Wars",
+      "Game of Thrones",
+      "The Witcher",
+      "Tomb Raider",
+      "Star Trek",
+      "Team Looney Toons",
+      "Elvis Presley",
+      "Vikings",
+      "Miscellaneous"
+    ];
+
+const SERIES_TINTS = {
+  "Classic": "80,160,255",
+  "Annual": "255,180,80",
+  "The Lord of the Rings": "90,200,140",
+  "Harry Potter": "170,120,255",
+  "The Hobbit": "140,190,90",
+  "Star Wars": "255,210,90",
+  "Game of Thrones": "140,190,220",
+  "The Witcher": "220,45,60",
+  "Tomb Raider": "255,140,90",
+  "Star Trek": "35,210,200",
+  "Team Looney Toons": "255,120,200",
+  "Elvis Presley": "180,220,255",
+  "Vikings": "160,220,160",
+  "Miscellaneous": "200,200,200"
+};
+
+    const MEDALS = [
+      {"id":"lejog","name":"LEJOG","img":"images/LEJOG.webp","series":"Classic"},
+      {"id":"route-66","name":"Route 66","img":"images/Route66.webp","series":"Classic"},
+      {"id":"english-channel","name":"English Channel","img":"images/englishchannel.webp","series":"Classic"},
+      {"id":"hadrians-wall","name":"Hadrians Wall","img":"images/hadrianswall.webp","series":"Classic"},
+      {"id":"alps-to-ocean","name":"Alps to Ocean","img":"images/alpstoocean.webp","series":"Classic"},
+      {"id":"great-ocean-road","name":"Great Ocean Road","img":"images/greatoceanroad.webp","series":"Classic"},
+      {"id":"inca-trail","name":"Inca Trail","img":"images/incatrail.webp","series":"Classic"},
+      {"id":"camino-de-santiago","name":"Camino de Santiago","img":"images/caminodesantiago.webp","series":"Classic"},
+      {"id":"ring-of-kerry","name":"Ring of Kerry","img":"images/ringofkerry.webp","series":"Classic"},
+      {"id":"ring-road","name":"Ring Road","img":"images/ringroad.webp","series":"Classic"},
+      {"id":"cabot-trail","name":"Cabot Trail","img":"images/cabottrail.webp","series":"Classic"},
+      {"id":"mt-fuji","name":"Mt Fuji","img":"images/mtfuji.webp","series":"Classic"},
+      {"id":"st-francis-way","name":"St Francis Way","img":"images/stfrancisway.webp","series":"Classic"},
+      {"id":"mt-everest","name":"Mt Everest","img":"images/mteverest.webp","series":"Classic"},
+      {"id":"pyramids-of-giza","name":"Pyramids of Giza","img":"images/pyramidsofgiza.webp","series":"Classic"},
+      {"id":"kilimanjaro","name":"Kilimanjaro","img":"images/kilimanjaro.webp","series":"Classic"},
+      {"id":"romantic-road","name":"Romantic Road","img":"images/romanticroad.webp","series":"Classic"},
+      {"id":"cote-dazure","name":"Cote d’Azur","img":"images/cotedazure.webp","series":"Classic"},
+      {"id":"north-coast","name":"North Coast","img":"images/northcoast.webp","series":"Classic"},
+      {"id":"marathon-to-athens","name":"Marathon to Athens","img":"images/marathontoathens.webp","series":"Classic"},
+      {"id":"flower-route","name":"Flower Route","img":"images/flowerroute.webp","series":"Classic"},
+      {"id":"trek-to-petra","name":"Trek to Petra","img":"images/trektopetra.webp","series":"Classic"},
+      {"id":"amalfi-coast","name":"Amalfi Coast","img":"images/amalficoast.webp","series":"Classic"},
+      {"id":"angkor-wat","name":"Angkor Wat","img":"images/angkorwat.webp","series":"Classic"},
+      {"id":"road-to-hana","name":"Road to Hana","img":"images/roadtohana.webp","series":"Classic"},
+      {"id":"great-wall","name":"Great Wall","img":"images/greatwall.webp","series":"Classic"},
+      {"id":"yellowstone","name":"Yellowstone","img":"images/yellowstone.webp","series":"Classic"},
+      {"id":"berlin-wall","name":"Berlin Wall","img":"images/berlinwall.webp","series":"Classic"},
+      {"id":"golden-triangle","name":"Golden Triangle","img":"images/goldentriangle.webp","series":"Classic"},
+      {"id":"easter-island","name":"Easter Island","img":"images/easterisland.webp","series":"Classic"},
+      {"id":"kruger","name":"Kruger","img":"images/kruger.webp","series":"Classic"},
+      {"id":"nakasendo-trail","name":"Nakasendo Trail","img":"images/nakasendotrail.webp","series":"Classic"},
+      {"id":"florida-keys","name":"Florida Keys","img":"images/floridakeys.webp","series":"Classic"},
+      {"id":"estrada-real","name":"Estrada Real","img":"images/estradareal.webp","series":"Classic"},
+      {"id":"cotswold-way","name":"Cotswold Way","img":"images/cotswoldway.webp","series":"Classic"},
+      {"id":"transylvania","name":"Transylvania","img":"images/transylvania.webp","series":"Classic"},
+      {"id":"yosemite-park","name":"Yosemite Park","img":"images/yosemitepark.webp","series":"Classic"},
+      {"id":"south-downs-way","name":"South Downs Way","img":"images/southdownsway.webp","series":"Classic"},
+      {"id":"great-barrier-reef","name":"Great Barrier Reef","img":"images/greatbarrierreef.webp","series":"Classic"},
+      {"id":"west-coast-trail","name":"West Coast Trail","img":"images/westcoasttrail.webp","series":"Classic"},
+      {"id":"rocky-mountains","name":"Rocky Mountains","img":"images/rockymountains.webp","series":"Classic"},
+      {"id":"paris","name":"Paris","img":"images/pariscity.webp","series":"Classic"},
+      {"id":"rome","name":"Rome","img":"images/romecity.webp","series":"Classic"},
+      {"id":"london","name":"London","img":"images/londoncity.webp","series":"Classic"},
+      {"id":"the-jesus-trail","name":"The Jesus Trail","img":"images/thejesustrail.webp","series":"Classic"},
+      {"id":"te-araroa","name":"Te Araroa","img":"images/te-araroa.webp","series":"Classic"},
+      {"id":"chichen-itza","name":"Chichen Itza","img":"images/chichenitza.webp","series":"Classic"},
+      {"id":"amazon-rainforest","name":"Amazon Rainforest","img":"images/amazonrainforest.webp","series":"Classic"},
+      {"id":"new-york-city","name":"New York City","img":"images/newyorkcity.webp","series":"Classic"},
+      {"id":"los-angeles","name":"Los Angeles","img":"images/losangeles.webp","series":"Classic"},
+      {"id":"washington-dc","name":"Washington DC","img":"images/washingtondc.webp","series":"Classic"},
+      {"id":"jurassic-coast","name":"Jurassic Coast","img":"images/jurassiccoast.webp","series":"Classic"},
+      {"id":"the-forbidden-city","name":"The Forbidden City","img":"images/theforbiddencity.webp","series":"Classic"},
+      {"id":"dia-de-los-muertos","name":"Dia de los Muertos","img":"images/diadelosmuertos.webp","series":"Classic"},
+      {"id":"bangkok","name":"Bangkok","img":"images/bangkok.webp","series":"Classic"},
+      {"id":"dublin","name":"Dublin","img":"images/dublin.webp","series":"Classic"},
+      {"id":"grand-canyon","name":"Grand Canyon","img":"images/grandcanyon.webp","series":"Classic"},
+      {"id":"vietnam-coast","name":"Vietnam Coast","img":"images/vietnamcoast.webp","series":"Classic"},
+      {"id":"tokyo","name":"Tokyo","img":"images/tokyo.webp","series":"Classic"},
+      {"id":"singapore","name":"Singapore","img":"images/singapore.webp","series":"Classic"},
+      {"id":"banff","name":"Banff","img":"images/banff.webp","series":"Classic"},
+      {"id":"wales-coast-path","name":"Wales Coast Path","img":"images/walescoastpath.webp","series":"Classic"},
+      {"id":"new-south-wales-coast","name":"New South Wales Coast","img":"images/newsouthwalescoast.webp","series":"Classic"},
+      {"id":"mount-rushmore","name":"Mount Rushmore","img":"images/mountrushmore.webp","series":"Classic"},
+      {"id":"the-giants-causeway","name":"The Giant’s Causeway","img":"images/thegiantscauseway.webp","series":"Classic"},
+      {"id":"appalachian-trail","name":"Appalachian Trail","img":"images/appalachiantrail.webp","series":"Classic"},
+      {"id":"pacific-crest-trail","name":"Pacific Crest Trail","img":"images/pacificcresttrail.webp","series":"Classic"},
+      {"id":"continental-divide-trail","name":"Continental Divide Trail","img":"images/continentaldividetrail.webp","series":"Classic"},
+      {"id":"rovaniemi","name":"Rovaniemi","img":"images/rovaniemi.webp","series":"Classic"},
+      {"id":"silk-road","name":"Silk Road","img":"images/silkroad.webp","series":"Classic"},
+      {"id":"lake-district","name":"Lake District","img":"images/lakedistrict.webp","series":"Classic"},
+      {"id":"vienna","name":"Vienna","img":"images/vienna.webp","series":"Classic"},
+      {"id":"caesars-and-emperors","name":"Caesars and Emperors","img":"images/caesarsandemperors.webp","series":"Classic"},
+      {"id":"rio-de-janeiro","name":"Rio de Janeiro","img":"images/riodejaneiro.webp","series":"Classic"},
+      {"id":"galapagos","name":"Galapagos","img":"images/galapagos.webp","series":"Classic"},
+      {"id":"arctic-circle","name":"Arctic Circle","img":"images/arcticcircle.webp","series":"Classic"},
+      {"id":"madagascar","name":"Madagascar","img":"images/madagascar.webp","series":"Classic"},
+      {"id":"fiji","name":"Fiji","img":"images/fiji.webp","series":"Classic"},
+      {"id":"bali","name":"Bali","img":"images/bali.webp","series":"Classic"},
+      {"id":"cuba","name":"Cuba","img":"images/cuba.webp","series":"Classic"},
+      {"id":"victoria-falls","name":"Victoria Falls","img":"images/victoriafalls.webp","series":"Classic"},
+      {"id":"osaka","name":"Osaka","img":"images/osaka.webp","series":"Classic"},
+      {"id":"valley-of-the-kings","name":"Valley of the Kings","img":"images/valleyofthekings.webp","series":"Classic"},
+      {"id":"mississippi-river","name":"Mississippi River","img":"images/mississippiriver.webp","series":"Classic"},
+      {"id":"loire-valley","name":"Loire Valley","img":"images/loirevalley.webp","series":"Classic"},
+      {"id":"barcelona","name":"Barcelona","img":"images/barcelona.webp","series":"Classic"},
+      {"id":"amsterdam","name":"Amsterdam","img":"images/amsterdam.webp","series":"Classic"},
+      {"id":"lotr-the-shire","name":"LOTR: The Shire","img":"images/LOTRtheshire.webp","series":"The Lord of the Rings"},
+      {"id":"lotr-the-fellowship","name":"LOTR: The Fellowship","img":"images/LOTRthefellowship.webp","series":"The Lord of the Rings"},
+      {"id":"lotr-mines-of-moria","name":"LOTR: Mines of Moria","img":"images/LOTRminesofmoria.webp","series":"The Lord of the Rings"},
+      {"id":"lotr-the-eye-of-sauron","name":"LOTR: The Eye of Sauron","img":"images/LOTRtheeyeofsauron.webp","series":"The Lord of the Rings"},
+      {"id":"lotr-mordor","name":"LOTR: Mordor","img":"images/LOTRmordor.webp","series":"The Lord of the Rings"},
+      {"id":"rotk-rohan","name":"ROTK: Rohan","img":"images/ROTKrohan.webp","series":"The Lord of the Rings"},
+      {"id":"rotk-helms-deep","name":"ROTK: Helms Deep","img":"images/ROTKhelmsdeep.webp","series":"The Lord of the Rings"},
+      {"id":"rotk-gondor","name":"ROTK: Gondor","img":"images/ROTKgondor.webp","series":"The Lord of the Rings"},
+      {"id":"harry-potter-and-the-sorcerers-stone","name":"Harry Potter and the Sorcerer’s Stone","img":"images/harrypotterandthesorcerersstone.webp","series":"Harry Potter"},
+      {"id":"harry-potter-and-the-chamber-of-secrets","name":"Harry Potter and the Chamber of Secrets","img":"images/harrypotterandthechamberofsecrets.webp","series":"Harry Potter"},
+      {"id":"harry-potter-and-the-prisoner-of-azkaban","name":"Harry Potter and the Prisoner of Azkaban","img":"images/harrypotterandtheprisonerofazkaban.webp","series":"Harry Potter"},
+      {"id":"harry-potter-and-the-goblet-of-fire","name":"Harry Potter and the Goblet of Fire","img":"images/harrypotterandthegobletoffire.webp","series":"Harry Potter"},
+      {"id":"harry-potter-and-the-order-of-the-phoenix","name":"Harry Potter and the Order of the Phoenix","img":"images/harrypotterandtheorderofthephoenix.webp","series":"Harry Potter"},
+      {"id":"harry-potter-and-the-half-blood-prince","name":"Harry Potter and the Half-Blood Prince","img":"images/harrypotterandthehalfbloodprince.webp","series":"Harry Potter"},
+      {"id":"harry-potter-and-the-deathly-hallows","name":"Harry Potter and the Deathly Hallows","img":"images/harrypotterandthedeathlyhallows.webp","series":"Harry Potter"},
+      {"id":"the-hobbit-an-unexpected-journey","name":"The Hobbit: An Unexpected Journey","img":"images/thehobbitanunexpectedjourney.webp","series":"The Hobbit"},
+      {"id":"the-hobbit-the-desolation-of-smaug","name":"The Hobbit: The Desolation of Smaug","img":"images/thehobbitthedesolationofsmaug.webp","series":"The Hobbit"},
+      {"id":"the-hobbit-the-battle-of-the-five-armies","name":"The Hobbit: The Battle of the Five Armies","img":"images/thehobbitthebattleofthefivearmies.webp","series":"The Hobbit"},
+      {"id":"star-wars-the-death-star","name":"Star Wars: The Death Star","img":"images/starwarsthedeathstar.webp","series":"Star Wars"},
+      {"id":"star-wars-the-rebel-alliance","name":"Star Wars: The Rebel Alliance","img":"images/starwarstherebelalliance.webp","series":"Star Wars"},
+      {"id":"star-wars-han-solos-rescue","name":"Star Wars: Han Solo’s Rescue","img":"images/starwarshansolosrescue.webp","series":"Star Wars"},
+      {"id":"star-wars-the-podrace","name":"Star Wars: The Podrace","img":"images/starwarsthepodrace.webp","series":"Star Wars"},
+      {"id":"star-wars-the-jedi-order","name":"Star Wars: The Jedi Order","img":"images/starwarsthejediorder.webp","series":"Star Wars"},
+      {"id":"star-wars-the-dark-side","name":"Star Wars: The Dark Side","img":"images/starwarsthedarkside.webp","series":"Star Wars"},
+      {"id":"star-wars-the-millennium-falcon","name":"Star Wars: The Millennium Falcon","img":"images/starwarsthemillenniumfalcon.webp","series":"Star Wars"},
+      {"id":"star-wars-the-first-order","name":"Star Wars: The First Order","img":"images/starwarsthefirstorder.webp","series":"Star Wars"},
+      {"id":"star-wars-the-sith","name":"Star Wars: The Sith","img":"images/starwarsthesith.webp","series":"Star Wars"},
+      {"id":"got-beyond-the-wall","name":"GOT: Beyond the Wall","img":"images/GOTbeyondthewall.webp","series":"Game of Thrones"},
+      {"id":"got-the-hand","name":"GOT: The Hand","img":"images/GOTthehand.webp","series":"Game of Thrones"},
+      {"id":"got-valar-morghulis","name":"GOT: Valar Morghulis","img":"images/GOTvalarmorghulis.webp","series":"Game of Thrones"},
+      {"id":"got-mother-of-dragons","name":"GOT: Mother of Dragons","img":"images/GOTmotherofdragons.webp","series":"Game of Thrones"},
+      {"id":"got-the-iron-throne","name":"GOT: The Iron Throne","img":"images/GOTtheironthrone.webp","series":"Game of Thrones"},
+      {"id":"the-witcher-white-wolf","name":"The Witcher: White Wolf","img":"images/thewitcherwhitewolf.webp","series":"The Witcher"},
+      {"id":"the-witcher-kings-gambit","name":"The Witcher: King’s Gambit","img":"images/thewitcherkingsgambit.webp","series":"The Witcher"},
+      {"id":"the-witcher-wild-hunt","name":"The Witcher: Wild Hunt","img":"images/thewitcherwildhunt.webp","series":"The Witcher"},
+      {"id":"tomb-raider-a-survivor-is-born","name":"Tomb Raider: A Survivor Is Born","img":"images/tombraiderasurvivorisborn.webp","series":"Tomb Raider"},
+      {"id":"rise-of-the-tomb-raider","name":"Rise of the Tomb Raider","img":"images/riseofthetombraider.webp","series":"Tomb Raider"},
+      {"id":"shadow-of-the-tomb-raider","name":"Shadow of the Tomb Raider","img":"images/shadowofthetombraider.webp","series":"Tomb Raider"},
+      {"id":"star-trek-the-enterprise","name":"Star Trek: The Enterprise","img":"images/startrektheenterprise.webp","series":"Star Trek"},
+      {"id":"star-trek-the-gorn","name":"Star Trek: The Gorn","img":"images/startrekthegorn.webp","series":"Star Trek"},
+      {"id":"star-trek-klingon-code","name":"Star Trek: Klingon Code","img":"images/startrekklingoncode.webp","series":"Star Trek"},
+      {"id":"star-trek-spock-divided","name":"Star Trek: Spock Divided","img":"images/startrekspockdivided.webp","series":"Star Trek"},
+      {"id":"star-trek-data-vs-lore","name":"Star Trek: Data vs Lore","img":"images/startrekdatavslore.webp","series":"Star Trek"},
+      {"id":"star-trek-locutus-of-borg","name":"Star Trek: Locutus of Borg","img":"images/startreklocutusofborg.webp","series":"Star Trek"},
+      {"id":"daffy-duck","name":"Daffy Duck","img":"images/daffyduck.webp","series":"Team Looney Toons"},
+      {"id":"bugs-bunny","name":"Bugs Bunny","img":"images/bugsbunny.webp","series":"Team Looney Toons"},
+      {"id":"wile-e-coyote","name":"Wile E. Coyote","img":"images/wile-e-coyote.webp","series":"Team Looney Toons"},
+      {"id":"elvis-in-memphis","name":"Elvis in Memphis","img":"images/elvisinmemphis.webp","series":"Elvis Presley"},
+      {"id":"elvis-on-tour","name":"Elvis on Tour","img":"images/elvisontour.webp","series":"Elvis Presley"},
+      {"id":"viking-invasions","name":"Viking Invasions","img":"images/vikinginvasions.webp","series":"Vikings"},
+      {"id":"viking-explorers","name":"Viking Explorers","img":"images/vikingexplorers.webp","series":"Vikings"},
+      {"id":"the-last-vikings","name":"The Last Vikings","img":"images/thelastvikings.webp","series":"Vikings"},
+      {"id":"conquer-2026-unbreakable","name":"Conquer 2026: Unbreakable","img":"images/conquer2026unbreakable.webp","series":"Annual"},
+      {"id":"conquer-2024-seasons-of-change","name":"Conquer 2024: Seasons of Change","img":"images/conquer2024seasonsofchange.webp","series":"Annual"},
+      {"id":"mothers-day-2025","name":"Mother’s Day 2025","img":"images/mothersday2025.webp","series":"Annual"},
+      {"id":"corpse-bride","name":"Corpse Bride","img":"images/corpsebride.webp","series":"Miscellaneous"},
+      {"id":"vincent-van-gogh","name":"Vincent van Gogh","img":"images/vincentvangogh.webp","series":"Miscellaneous"},
+      {"id":"to-the-moon","name":"To the Moon","img":"images/tothemoon.webp","series":"Miscellaneous"},
+      {"id":"space-exploration","name":"Space Exploration","img":"images/spaceexploration.webp","series":"Miscellaneous"},
+      {"id":"space-stations","name":"Space Stations","img":"images/spacestations.webp","series":"Miscellaneous"},
+      {"id":"it","name":"IT","img":"images/it.webp","series":"Miscellaneous"},
+      {"id":"the-salem-witch-trials","name":"The Salem Witch Trials","img":"images/thesalemwitchtrials.webp","series":"Miscellaneous"},
+      {"id":"scooby-doo-which-witch-is-which","name":"Scooby-Doo: Which Witch Is Which","img":"images/scoobydoowhichwitchiswhich.webp","series":"Miscellaneous"},
+      {"id":"scooby-doo-and-the-snow-beast","name":"Scooby-Doo and the Snow Beast","img":"images/scoobydooandthesnowbeast.webp","series":"Miscellaneous"}
+    ];
+
+    let progress = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    let activeSeries = "ALL";
+
+    function normaliseSeries(s) {
+      return String(s ?? "").trim();
+    }
+
+    function seriesList() {
+      const seen = new Set(MEDALS.map(m => normaliseSeries(m.series)));
+      const ordered = SERIES_ORDER.filter(s => seen.has(s));
+      const extras = [...seen].filter(s => s && !SERIES_ORDER.includes(s)).sort((a,b)=>a.localeCompare(b));
+      return [...ordered, ...extras];
+    }
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+      render();
+    }
+
+    function stateLabel(i) {
+      return ["Not started","In progress","Done"][i] || "Not started";
+    }
+
+    function render() {
+      const content = document.getElementById("content");
+      const filters = document.getElementById("filters");
+      content.innerHTML = "";
+      filters.innerHTML = "";
+  
+const seriesArr = seriesList();
+renderMobileDropdown(seriesArr);
+
+
+    // Filters
+const allBtn = document.createElement("button");
+allBtn.textContent = "All";
+allBtn.className = "filter-btn";
+allBtn.setAttribute("aria-pressed", String(activeSeries === "ALL"));
+allBtn.onclick = () => { activeSeries = "ALL"; render(); };
+filters.appendChild(allBtn);
+
+for (const s of seriesArr) {
+  const b = document.createElement("button");
+  b.textContent = s;
+  b.className = "filter-btn";
+  b.setAttribute("aria-pressed", String(activeSeries === s));
+  b.onclick = () => { activeSeries = s; render(); };
+  filters.appendChild(b);
+}
+
+
+      // Sections
+     for (const series of seriesArr) {
+        if (activeSeries !== "ALL" && series !== activeSeries) continue;
+
+        const list = MEDALS.filter(m => normaliseSeries(m.series) === series);
+        if (!list.length) continue;
+
+        const doneCount = list.reduce((acc, m) => acc + ((progress[m.id] ?? 0) === 2 ? 1 : 0), 0);
+
+        const sec = document.createElement("section");
+        sec.innerHTML = `
+          <div class="section-title">
+            <h2>${series}</h2>
+            <div class="count">${doneCount}/${list.length} completed</div>
+          </div>
+          <div class="grid"></div>
+        `;
+
+        const grid = sec.querySelector(".grid");
+
+ for (const m of list) {
+  const state = progress[m.id] ?? 0;
+  const stateClass = STATES[state] || "not-started";
+
+  const card = document.createElement("div");
+  card.className = `card ${stateClass}`;
+  card.innerHTML = `
+    <div class="imgwrap ${stateClass}">
+      <img src="${m.img}" alt="${m.name}" loading="lazy" />
+    </div>
+    <div class="label">
+      <span>${m.name}</span>
+      <span class="state ${stateClass}">${stateLabel(state)}</span>
+    </div>
+  `;
+
+  // ✅ NEW: set background tint based on series
+  const wrap = card.querySelector(".imgwrap");
+  const seriesKey = String(m.series || "").trim();
+  const tint = SERIES_TINTS[seriesKey] || "180,180,180";
+  wrap.style.setProperty("--tint", tint);
+
+// Tap cycles: Not started -> In progress -> Done -> Not started
+card.onclick = () => {
+  const cur = progress[m.id] ?? 0;
+  progress[m.id] = (cur + 1) % 3;
+  save();
+};
+
+grid.appendChild(card);
+
+}
+
+
+        content.appendChild(sec);
+      }
+    }
+
+    document.getElementById("resetBtn").onclick = () => {
+      if (confirm("Reset all medals?")) {
+        progress = {};
+        save();
+      }
+    };
+
+    document.getElementById("exportBtn").onclick = async () => {
+      await navigator.clipboard.writeText(JSON.stringify(progress));
+      alert("Progress copied to clipboard.");
+    };
+
+    document.getElementById("importBtn").onclick = () => {
+      const t = prompt("Paste progress JSON:");
+      if (!t) return;
+      try {
+        progress = JSON.parse(t);
+        save();
+        alert("Imported.");
+      } catch {
+        alert("That doesn’t look like valid JSON.");
+      }
+    };
+function renderMobileDropdown(seriesArr) {
+  const host = document.getElementById("mobileFilter");
+  if (!host) return;
+
+  host.innerHTML = "";
+
+  const select = document.createElement("select");
+
+  const optAll = document.createElement("option");
+  optAll.value = "ALL";
+  optAll.textContent = "All series";
+  select.appendChild(optAll);
+
+  for (const s of seriesArr) {
+    const opt = document.createElement("option");
+    opt.value = s;
+    opt.textContent = s;
+    select.appendChild(opt);
+  }
+
+  select.value = activeSeries;
+  select.addEventListener("change", () => {
+    activeSeries = select.value;
+    render();
+  });
+
+  host.appendChild(select);
+}
+
+
+    render();
+  </script>
+</body>
+</html>

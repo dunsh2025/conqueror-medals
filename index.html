@@ -145,62 +145,49 @@
   header { gap: 10px; }
   h1 { font-size: 16px; }
   .hint { font-size: 12px; }
-  
+
   .hint-mobile { display: block; }
   .hint-desktop { display: none; }
 
-  /* ✅ Status filters: buttons hidden on mobile, dropdown shown */
+  /* Status filters: hide buttons row, show dropdown */
   #statusFilters { display: none; }
   #mobileStatusFilter { display: block; }
 
-  /* (you already have your mobile series dropdown rules etc below) */
-}
-  
   /* Bigger tap targets */
   button { padding: 10px 12px; border-radius: 12px; }
 
-/* Sticky filter bar */
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: rgba(11,12,16,0.92);
-  backdrop-filter: blur(8px);
-  padding: 10px 0;
-  margin: 0 0 12px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* Mobile: use dropdown instead of scroll buttons */
-#filters { display: none; }
-
-.mobile-filter {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-  margin: 0 0 10px;
-}
-
-.mobile-filter select {
-  width: 100%;
-  padding: 12px 12px;
-  border-radius: 12px;
-  border: 1px solid #2b2f36;
-  background: #141821;
-  color: #f2f2f2;
-  font-size: 14px;
-}
-
-
-  /* Horizontal scroll for lots of series buttons */
-  #filters {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    gap: 8px;
+  /* Sticky filter bar */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(11,12,16,0.92);
+    backdrop-filter: blur(8px);
+    padding: 10px 0;
+    margin: 0 0 12px;
+    width: 100%;
+    box-sizing: border-box;
   }
-  #filters button { flex: 0 0 auto; }
+
+  /* Mobile: use dropdown instead of scroll buttons */
+  #filters { display: none; }
+
+  .mobile-filter {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0 0 10px;
+  }
+
+  .mobile-filter select {
+    width: 100%;
+    padding: 12px 12px;
+    border-radius: 12px;
+    border: 1px solid #2b2f36;
+    background: #141821;
+    color: #f2f2f2;
+    font-size: 14px;
+  }
 
   /* Fewer columns, larger cards */
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -214,6 +201,8 @@
   .grid { grid-template-columns: 1fr; }
   img { height: 165px; }
 }
+
+
 
   </style>
 </head>

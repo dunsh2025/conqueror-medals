@@ -136,7 +136,9 @@
     
 .hint-mobile { display: none; }
 .hint-desktop { display: block; }
-
+    
+#mobileStatusFilter { display: none; }
+    
 /* Mobile polish */
 @media (max-width: 600px) {
   body { margin: 14px; }
@@ -146,6 +148,13 @@
   
   .hint-mobile { display: block; }
   .hint-desktop { display: none; }
+
+  /* ✅ Status filters: buttons hidden on mobile, dropdown shown */
+  #statusFilters { display: none; }
+  #mobileStatusFilter { display: block; }
+
+  /* (you already have your mobile series dropdown rules etc below) */
+}
   
   /* Bigger tap targets */
   button { padding: 10px 12px; border-radius: 12px; }
@@ -226,6 +235,8 @@
 
   <div class="topbar" id="filters"></div>
 <div class="mobile-filter" id="mobileFilter"></div>
+<div class="topbar" id="statusFilters"></div>
+<div class="mobile-filter" id="mobileStatusFilter"></div>
 
   <main id="content"></main>
 
@@ -427,18 +438,17 @@ const SERIES_TINTS = {
       {"id":"the-salem-witch-trials","name":"The Salem Witch Trials","img":"images/thesalemwitchtrials.webp","series":"Miscellaneous"},
       {"id":"scooby-doo-which-witch-is-which","name":"Scooby-Doo: Which Witch Is Which","img":"images/scoobydoowhichwitchiswhich.webp","series":"Miscellaneous"},
       {"id":"scooby-doo-and-the-snow-beast","name":"Scooby-Doo and the Snow Beast","img":"images/scoobydooandthesnowbeast.webp","series":"Miscellaneous"},
-      {"id":"kokoda-trail","name":"Kokoda Trail","img":"images/kokodatrail.webp","series":"Classic"},
-
-      
+      {"id":"kokoda-trail","name":"Kokoda Trail","img":"images/kokodatrail.webp","series":"Classic"},  
 
     ];
 
     let progress = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-    let activeSeries = "ALL";
+let activeSeries = "ALL";
+let activeStatus = "ALL"; // ALL | NOT | PROG | DONE
 
-    function normaliseSeries(s) {
-      return String(s ?? "").trim();
-    }
+function normaliseSeries(s) {
+  return String(s ?? "").trim();
+}
 
     function seriesList() {
       const seen = new Set(MEDALS.map(m => normaliseSeries(m.series)));
@@ -455,6 +465,64 @@ const SERIES_TINTS = {
     function stateLabel(i) {
       return ["Not started","In progress","Done"][i] || "Not started";
     }
+function renderStatusFilters() {
+  const host = document.getElementById("statusFilters");
+  if (!host) return;
+  host.innerHTML = "";
+
+  const opts = [
+    ["ALL", "All statuses"],
+    ["NOT", "Not started"],
+    ["PROG", "In progress"],
+    ["DONE", "Done"]
+  ];
+
+  for (const [val, label] of opts) {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.className = "filter-btn";
+    b.setAttribute("aria-pressed", String(activeStatus === val));
+    b.onclick = () => { activeStatus = val; render(); };
+    host.appendChild(b);
+  }
+}
+
+function renderMobileStatusDropdown() {
+  const host = document.getElementById("mobileStatusFilter");
+  if (!host) return;
+  host.innerHTML = "";
+
+  const select = document.createElement("select");
+  const opts = [
+    ["ALL", "All statuses"],
+    ["NOT", "Not started"],
+    ["PROG", "In progress"],
+    ["DONE", "Done"]
+  ];
+
+  for (const [val, label] of opts) {
+    const opt = document.createElement("option");
+    opt.value = val;
+    opt.textContent = label;
+    select.appendChild(opt);
+  }
+
+  select.value = activeStatus;
+  select.addEventListener("change", () => {
+    activeStatus = select.value;
+    render();
+  });
+
+  host.appendChild(select);
+}
+
+function matchesStatus(state) {
+  if (activeStatus === "ALL") return true;
+  if (activeStatus === "NOT") return state === 0;
+  if (activeStatus === "PROG") return state === 1;
+  if (activeStatus === "DONE") return state === 2;
+  return true;
+}
 
     function render() {
       const content = document.getElementById("content");
@@ -464,6 +532,8 @@ const SERIES_TINTS = {
   
 const seriesArr = seriesList();
 renderMobileDropdown(seriesArr);
+renderStatusFilters();
+renderMobileStatusDropdown();
 
       // Overall totals (all medals)
 let totalNotStarted = 0;
@@ -505,7 +575,12 @@ for (const s of seriesArr) {
      for (const series of seriesArr) {
         if (activeSeries !== "ALL" && series !== activeSeries) continue;
 
-        const list = MEDALS.filter(m => normaliseSeries(m.series) === series);
+        const list = MEDALS.filter(m => {
+  if (normaliseSeries(m.series) !== series) return false;
+  const state = progress[m.id] ?? 0;
+  return matchesStatus(state);
+});
+
         if (!list.length) continue;
 
         const doneCount = list.reduce((acc, m) => acc + ((progress[m.id] ?? 0) === 2 ? 1 : 0), 0);

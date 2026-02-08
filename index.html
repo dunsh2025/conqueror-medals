@@ -215,11 +215,13 @@
 <div class="hint hint-mobile">Tap to cycle: Not started → In progress → Done → Not started</div>
       <div class="hint" id="overallTotals"></div>
     </div>
-    <div class="actions">
-      <button id="exportBtn">Export</button>
-      <button id="importBtn">Import</button>
-      <button id="resetBtn">Reset all</button>
-    </div>
+   <div class="actions">
+  <button id="exportBtn">Export</button>
+  <button id="importBtn">Import</button>
+  <button id="resetBtn">Reset all</button>
+  <button id="exportImgBtn">Export PNG</button>
+</div>
+
   </header>
 
   <div class="topbar" id="filters"></div>
@@ -512,6 +514,96 @@ function matchesStatus(state) {
   if (activeStatus === "DONE") return state === 2;
   return true;
 }
+async function exportPlainGridPNG() {
+  // Sort medals A–Z by name (case-insensitive)
+  const items = [...MEDALS].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+  );
+
+  // Layout settings (plain grid, no gaps)
+  const cell = 140;        // size of each tile in px
+  const cols = 10;         // change this if you want wider/narrower export
+  const gap = 0;           // no space between tiles
+  const pad = 0;           // no padding around the grid
+
+  const rows = Math.ceil(items.length / cols);
+  const width = pad * 2 + cols * cell + (cols - 1) * gap;
+  const height = pad * 2 + rows * cell + (rows - 1) * gap;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext("2d");
+
+  // Background (white looks best for sharing; change if you prefer)
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+
+  // Helper: load images
+  const loadImg = (src) => new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = src;
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+  });
+
+  // Preload all images
+  const loaded = await Promise.all(items.map(m => loadImg(m.img)));
+
+  for (let i = 0; i < items.length; i++) {
+    const m = items[i];
+    const img = loaded[i];
+
+    const state = Number(progress[m.id] ?? 0);
+    const done = state === 2;
+
+    const r = Math.floor(i / cols);
+    const c = i % cols;
+
+    const x = pad + c * (cell + gap);
+    const y = pad + r * (cell + gap);
+
+    // Draw image to fill the cell (cover crop)
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+
+    // "cover" fit
+    const scale = Math.max(cell / iw, cell / ih);
+    const dw = iw * scale;
+    const dh = ih * scale;
+    const dx = x + (cell - dw) / 2;
+    const dy = y + (cell - dh) / 2;
+
+    // Grey out anything not done
+    if (!done) {
+      ctx.save();
+      ctx.globalAlpha = 0.25;            // greyed out strength
+      ctx.filter = "grayscale(1)";
+      ctx.drawImage(img, dx, dy, dw, dh);
+      ctx.restore();
+    } else {
+      ctx.save();
+      ctx.globalAlpha = 1;
+      ctx.filter = "none";
+      ctx.drawImage(img, dx, dy, dw, dh);
+      ctx.restore();
+
+      // Simple highlight border for completed
+      ctx.save();
+      ctx.strokeStyle = "rgba(0, 160, 90, 0.95)"; // subtle green
+      ctx.lineWidth = 6;
+      ctx.strokeRect(x + 3, y + 3, cell - 6, cell - 6);
+      ctx.restore();
+    }
+  }
+
+  // Download
+  const a = document.createElement("a");
+  a.download = "conqueror-medals-grid.png";
+  a.href = canvas.toDataURL("image/png");
+  a.click();
+}
 
     function render() {
       const content = document.getElementById("content");
@@ -609,43 +701,142 @@ for (const s of seriesArr) {
 
 // Tap cycles: Not started -> In progress -> Done -> Not started
 card.onclick = () => {
-  const cur = progress[m.id] ?? 0;
+  const cur = Number(progress[m.id] ?? 0);
   progress[m.id] = (cur + 1) % 3;
   save();
 };
 
 grid.appendChild(card);
-
 }
 
+content.appendChild(sec);
+}
+}
 
-        content.appendChild(sec);
-      }
+// ------------------------
+// Export plain alphabetical grid PNG (for sharing)
+// ------------------------
+async function exportPlainGridPNG() {
+  const items = [...MEDALS].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+  );
+
+  const cell = 140;     // tile size
+  const cols = 10;      // columns in the exported image
+  const gap = 0;        // no space between tiles
+  const pad = 0;        // no padding
+
+  const rows = Math.ceil(items.length / cols);
+  const width = pad * 2 + cols * cell + (cols - 1) * gap;
+  const height = pad * 2 + rows * cell + (rows - 1) * gap;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+
+  const loadImg = (src) =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+    });
+
+  const loaded = await Promise.all(items.map(m => loadImg(m.img)));
+
+  for (let i = 0; i < items.length; i++) {
+    const m = items[i];
+    const img = loaded[i];
+
+    const state = Number(progress[m.id] ?? 0);
+    const done = state === 2;
+
+    const r = Math.floor(i / cols);
+    const c = i % cols;
+
+    const x = pad + c * (cell + gap);
+    const y = pad + r * (cell + gap);
+
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+
+    // cover-crop to square cell
+    const scale = Math.max(cell / iw, cell / ih);
+    const dw = iw * scale;
+    const dh = ih * scale;
+    const dx = x + (cell - dw) / 2;
+    const dy = y + (cell - dh) / 2;
+
+    if (!done) {
+      ctx.save();
+      ctx.globalAlpha = 0.25;
+      ctx.filter = "grayscale(1)";
+      ctx.drawImage(img, dx, dy, dw, dh);
+      ctx.restore();
+    } else {
+      ctx.save();
+      ctx.globalAlpha = 1;
+      ctx.filter = "none";
+      ctx.drawImage(img, dx, dy, dw, dh);
+      ctx.restore();
+
+      // simple highlight border for completed
+      ctx.save();
+      ctx.strokeStyle = "rgba(0, 160, 90, 0.95)";
+      ctx.lineWidth = 6;
+      ctx.strokeRect(x + 3, y + 3, cell - 6, cell - 6);
+      ctx.restore();
     }
+  }
 
-    document.getElementById("resetBtn").onclick = () => {
-      if (confirm("Reset all medals?")) {
-        progress = {};
-        save();
-      }
-    };
+  const a = document.createElement("a");
+  a.download = "conqueror-medals-grid.png";
+  a.href = canvas.toDataURL("image/png");
+  a.click();
+}
 
-    document.getElementById("exportBtn").onclick = async () => {
-      await navigator.clipboard.writeText(JSON.stringify(progress));
-      alert("Progress copied to clipboard.");
-    };
+// ------------------------
+// Buttons
+// ------------------------
+document.getElementById("resetBtn").onclick = () => {
+  if (confirm("Reset all medals?")) {
+    progress = {};
+    save();
+  }
+};
 
-    document.getElementById("importBtn").onclick = () => {
-      const t = prompt("Paste progress JSON:");
-      if (!t) return;
-      try {
-        progress = JSON.parse(t);
-        save();
-        alert("Imported.");
-      } catch {
-        alert("That doesn’t look like valid JSON.");
-      }
-    };
+document.getElementById("exportBtn").onclick = async () => {
+  await navigator.clipboard.writeText(JSON.stringify(progress));
+  alert("Progress copied to clipboard.");
+};
+
+document.getElementById("importBtn").onclick = () => {
+  const t = prompt("Paste progress JSON:");
+  if (!t) return;
+  try {
+    progress = JSON.parse(t);
+    save();
+    alert("Imported.");
+  } catch {
+    alert("That doesn’t look like valid JSON.");
+  }
+};
+
+// NEW: Export PNG grid
+document.getElementById("exportImgBtn").onclick = () => {
+  exportPlainGridPNG().catch(err => {
+    console.error(err);
+    alert("Could not export image. Check the console for details.");
+  });
+};
+
+// ------------------------
+// Mobile dropdown (series)
+// ------------------------
 function renderMobileDropdown(seriesArr) {
   const host = document.getElementById("mobileFilter");
   if (!host) return;
@@ -675,8 +866,8 @@ function renderMobileDropdown(seriesArr) {
   host.appendChild(select);
 }
 
+render();
 
-    render();
   </script>
 </body>
 </html>
